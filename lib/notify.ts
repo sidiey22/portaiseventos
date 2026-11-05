@@ -12,8 +12,13 @@ export async function emailTickets(orderId: number): Promise<void> {
   try {
     const e = unwrap(await db().from("events").select("*").eq("id", o.event_id).single()) as EventRow;
     const tickets = unwrap(await db().from("tickets").select("code, name").eq("order_id", o.id).order("position")) as { code: string; name: string }[];
-    await sendTicketsEmail({ buyerName: o.buyer_name, buyerEmail: o.buyer_email, orderCode: o.code, eventName: e.name, startsAt: e.starts_at, endsAt: e.ends_at,
-      place: [e.place_name, e.place_address].filter(Boolean).join(" · "), tickets });
+    let banner: { content: Buffer; contentType: string } | null = null;
+    if (e.banner_path) {
+      const dl = await db().storage.from("banners").download(e.banner_path); // sem banner, o email usa a arte automática
+      if (dl.data) banner = { content: Buffer.from(await dl.data.arrayBuffer()), contentType: dl.data.type || "image/jpeg" };
+    }
+    await sendTicketsEmail({ buyerName: o.buyer_name, buyerEmail: o.buyer_email, orderCode: o.code, eventId: e.id, eventName: e.name, kind: e.kind, startsAt: e.starts_at, endsAt: e.ends_at,
+      place: [e.place_name, e.place_address].filter(Boolean).join(" · "), tickets, banner });
   } catch (error) {
     await db().from("orders").update({ tickets_emailed_at: null }).eq("id", o.id); // tenta de novo na próxima rodada
     throw error;

@@ -104,6 +104,41 @@ export async function setStatusAction(d: FormData): Promise<void> {
   back(id, "editar", { ok: status === "published" ? "Inscrições abertas. O evento já aparece na vitrine." : "Inscrições encerradas." });
 }
 
+/**
+ * Apaga um evento (só administrador). Regras de segurança:
+ * - o nome do evento precisa ser digitado para confirmar;
+ * - não apaga se houver compra confirmada (primeiro reembolse/cancele) ou aguardando pagamento (expira em até 10 minutos);
+ * - o resto (fila, canceladas, expiradas, lotes, perguntas, equipe, cupons) é apagado junto, e o banner sai do armazenamento.
+ */
+export async function deleteEventAction(d: FormData): Promise<void> {
+  await requireAdmin();
+  const id = int(d, "eventId");
+  const e = await getEvent(id);
+  if (!e) redirect("/equipe");
+  if (txt(d, "confirm").toLowerCase() !== e!.name.trim().toLowerCase()) back(id, "editar", { erro: "Para apagar, digite o nome do evento exatamente como ele aparece." });
+  await db().rpc("expire_stale");
+  const orders = unwrap(await db().from("orders").select("id, status").eq("event_id", id)) as { id: number; status: string }[];
+  const confirmed = orders.filter((o) => o.status === "confirmed").length;
+  if (confirmed) back(id, "editar", { erro: `Há ${confirmed} compra(s) confirmada(s). Reembolse ou cancele cada uma na aba "Painel e inscritos" antes de apagar. Se não quiser mais vender, use "Encerrar inscrições".` });
+  const pending = orders.filter((o) => o.status === "pending").length;
+  if (pending) back(id, "editar", { erro: `Há ${pending} compra(s) aguardando pagamento. Elas expiram em até 10 minutos; tente apagar depois disso.` });
+  try {
+    const ids = orders.map((o) => o.id);
+    if (ids.length) {
+      for (const t of ["refunds", "payments"] as const) { const r = await db().from(t).delete().in("order_id", ids); if (r.error) throw r.error; }
+      const r = await db().from("orders").delete().in("id", ids);
+      if (r.error) throw r.error;
+    }
+    const r = await db().from("events").delete().eq("id", id);
+    if (r.error) throw r.error;
+    if (e!.banner_path) await db().storage.from("banners").remove([e!.banner_path]);
+  } catch (err) {
+    console.error("Apagar evento:", err);
+    back(id, "editar", { erro: "Não foi possível apagar o evento agora. Nada de importante foi perdido; tente de novo ou me avise." });
+  }
+  redirect(`/equipe?ok=${encodeURIComponent(`Evento "${e!.name}" apagado.`)}`);
+}
+
 export async function addLotAction(d: FormData): Promise<void> {
   const { id } = await manager(d);
   const price = parseMoneyToCents(txt(d, "price")), qty = int(d, "qty");

@@ -10,6 +10,7 @@ import { allow } from "../lib/rate-limit.ts";
 import { applyFilters, tableRows, toCsv, type Row } from "../lib/report.ts";
 import { validSignature } from "../lib/mercadopago.ts";
 import { friendlyError } from "../lib/errors.ts";
+import { ticketsHtml } from "../lib/mail.ts";
 import type { Question } from "../lib/types.ts";
 
 const NOW = new Date("2026-11-04T15:00:00.000Z");
@@ -93,4 +94,13 @@ test("mensagens de erro do banco em português", () => {
   assert.equal(friendlyError("not_enough_seats:2"), "Restam só 2 vagas. Diminua a quantidade de ingressos.");
   assert.equal(friendlyError("duplicate"), "Este CPF já tem uma compra ativa neste evento.");
   assert.match(friendlyError("qualquer coisa"), /Tente de novo/);
+});
+
+test("email dos ingressos: banner do evento ou arte automática, QR por participante e texto escapado", () => {
+  const m = { buyerName: "<b>Ana</b>", buyerEmail: "a@b.c", orderCode: "X1", eventId: 3, eventName: "Retiro & Cia", kind: "free" as const, startsAt: "2026-12-12T22:00:00.000Z", endsAt: null, place: "Igreja", tickets: [{ code: "A1", name: "Ana" }, { code: "B2", name: "Beto" }] };
+  const auto = ticketsHtml(m, "https://x.test/compra/X1");
+  assert.ok(auto.includes("RETIRO &amp; CIA") && auto.includes("ENTRADA GRATUITA") && !auto.includes("cid:banner"));
+  assert.ok(auto.includes("cid:qr0") && auto.includes("cid:qr1") && auto.includes("PE-A1") && auto.includes("&lt;b&gt;Ana&lt;/b&gt;") && !auto.includes("<b>Ana</b>"));
+  const withBanner = ticketsHtml({ ...m, banner: { content: Buffer.from("x"), contentType: "image/png" } }, "https://x.test/compra/X1");
+  assert.ok(withBanner.includes("cid:banner") && !withBanner.includes("ENTRADA GRATUITA"));
 });

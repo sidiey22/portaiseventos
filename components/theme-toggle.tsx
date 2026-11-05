@@ -5,12 +5,12 @@ import { Icon } from "./icons";
 
 const KEY = "pe-tema";
 
-/** Segue o aparelho por padrão; o botão troca e lembra a escolha neste navegador. */
+/** O tema oficial é o claro (não segue o aparelho). O botão troca e lembra a escolha neste navegador. */
 export function ThemeToggle() {
-  const [dark, setDark] = useState(true);
+  const [dark, setDark] = useState(false);
   useEffect(() => {
     const t = document.documentElement.getAttribute("data-theme");
-    setDark(t ? t === "dark" : !matchMedia("(prefers-color-scheme: light)").matches);
+    setDark(t === "dark");
   }, []);
   const toggle = () => {
     const next = dark ? "light" : "dark";

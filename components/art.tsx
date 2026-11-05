@@ -1,8 +1,8 @@
 import { bannerUrl } from "@/lib/events";
+import { paletteFor } from "@/lib/palette";
 import { dayKey, formatDate } from "@/lib/time";
 import type { EventRow } from "@/lib/types";
 
-const PALETTES = [["#17120a", "#3b2c08", "#ffee8c"], ["#1a0c09", "#5b1d10", "#ffb877"], ["#0c0b14", "#2a2346", "#d6c9ff"], ["#0d1322", "#2f4170", "#ffe2a8"], ["#0f140c", "#33421f", "#eef3a2"]];
 const esc = (t: string) => t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 function wrapTitle(name: string): string[] {
@@ -17,7 +17,7 @@ function wrapTitle(name: string): string[] {
 
 /** Banner automático (16:9) com os arcos do portal, usado quando o evento ainda não tem arte enviada. */
 function bannerSvg(e: EventRow): string {
-  const p = PALETTES[e.id % PALETTES.length]!, gid = `g${e.id}`, lines = wrapTitle(e.name);
+  const p = paletteFor(e.id), gid = `g${e.id}`, lines = wrapTitle(e.name);
   const longest = Math.max(...lines.map((l) => l.length), 1);
   const fs = Math.round(Math.min(lines.length > 2 ? 110 : 132, 800 / (longest * 0.74))), y0 = 470 - (lines.length - 1) * fs * 0.5;
   let arches = "";

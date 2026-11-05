@@ -32,6 +32,7 @@ export default async function ManageEvent({ params, searchParams }: { params: Pr
         <div><p className="eyebrow">{STATUS[e.status]} · {e.kind === "paid" ? "Pago" : "Gratuito"}</p><h1 style={{ margin: 0 }}>{e.name}</h1><p className="muted" style={{ margin: "4px 0 0" }}>{formatRange(e.starts_at, e.ends_at)}</p></div>
         <div className="actions">
           {e.status === "published" && <Link className="btn sec sm" href={`/eventos/${e.slug}`} target="_blank">Ver página pública</Link>}
+          <Link className="btn sec sm" href={`/equipe/eventos/${e.id}?aba=editar`}><Icon name="edit" /> Editar evento</Link>
           <Link className="btn sec sm" href={`/equipe/checkin?evento=${e.id}`}><Icon name="scan" /> Check-in</Link>
         </div>
       </div>
@@ -182,6 +183,15 @@ function Edit({ e, s, Hidden }: { e: EventFull; s: Staff; Hidden: () => React.Re
             ? <form action={A.setStatusAction}><Hidden /><input type="hidden" name="status" value="published" /><button className="btn" type="submit">Publicar inscrições</button></form>
             : <form action={A.setStatusAction}><Hidden /><input type="hidden" name="status" value="closed" /><button className="btn sec" type="submit">Encerrar inscrições</button></form>}
         </div>
+      )}
+      {a && (
+        <form className="card stack danger-zone" action={A.deleteEventAction} style={{ marginTop: 16 }}>
+          <Hidden />
+          <h2 style={{ margin: 0 }}>Apagar evento</h2>
+          <p className="small muted" style={{ margin: 0 }}>Apaga o evento, os lotes, as perguntas, a equipe, a fila e o histórico de compras canceladas ou expiradas. Não dá para desfazer. Se existir compra confirmada, o sistema não deixa apagar: reembolse ou cancele antes. Para só parar de vender, use "Encerrar inscrições".</p>
+          <label htmlFor="e-del">Para confirmar, digite o nome do evento: <strong>{e.name}</strong><input id="e-del" name="confirm" autoComplete="off" required /></label>
+          <div><button className="btn danger" type="submit">Apagar evento para sempre</button></div>
+        </form>
       )}
     </>
   );

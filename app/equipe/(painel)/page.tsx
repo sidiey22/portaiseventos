@@ -7,7 +7,8 @@ import { dayKey, formatBRL, formatDate } from "@/lib/time";
 type Stat = { id: number; name: string; starts_at: string; ends_at: string | null; kind: string; status: string; capacity: number; tickets: number; waitlist: number; revenue: number; checkins: number };
 const STATUS: Record<string, string> = { draft: "Rascunho", published: "Publicado", closed: "Encerrado" };
 
-export default async function StaffHome() {
+export default async function StaffHome({ searchParams }: { searchParams: Promise<{ ok?: string }> }) {
+  const { ok } = await searchParams;
   const s = await requireStaff();
   const managed = await managedEventIds(s);
   if (managed !== "all" && !managed.length) {
@@ -27,6 +28,7 @@ export default async function StaffHome() {
         <div><p className="eyebrow">{s.isAdmin ? "Administrador" : "Gerente de evento"}</p><h1 style={{ margin: 0 }}>{s.isAdmin ? "Visão geral" : "Meus eventos"}</h1></div>
         {s.isAdmin && <Link className="btn" href="/equipe/eventos/novo">Novo evento</Link>}
       </div>
+      {ok && <div className="okbox flash" role="status" style={{ marginTop: 14 }}>{ok}</div>}
       <div className="kpis">
         <div className="kpi"><span className="muted small">Arrecadado</span><strong>{formatBRL(tot.r)}</strong></div>
         <div className="kpi"><span className="muted small">Inscritos</span><strong>{tot.t}</strong></div>
@@ -35,7 +37,7 @@ export default async function StaffHome() {
       </div>
       {stats.length ? (
         <div className="card table-scroll"><table>
-          <thead><tr><th>Evento</th><th>Datas</th><th>Status</th><th>Inscritos</th><th>Check-ins</th><th>Fila</th><th>Arrecadado</th><th>Gerentes</th></tr></thead>
+          <thead><tr><th>Evento</th><th>Datas</th><th>Status</th><th>Inscritos</th><th>Check-ins</th><th>Fila</th><th>Arrecadado</th><th>Gerentes</th><th /></tr></thead>
           <tbody>{stats.map((r) => (
             <tr key={r.id}>
               <td><Link href={`/equipe/eventos/${r.id}`}>{r.name}</Link></td>
@@ -44,6 +46,7 @@ export default async function StaffHome() {
               <td className="num">{r.tickets} / {r.capacity}</td><td className="num">{r.checkins}</td><td className="num">{r.waitlist}</td>
               <td className="num">{r.kind === "paid" ? formatBRL(r.revenue) : "Gratuito"}</td>
               <td className="small">{staff.filter((x) => x.event_id === r.id).map((x) => <div key={x.email}>{x.email}</div>)}</td>
+              <td><Link className="btn sec sm" href={`/equipe/eventos/${r.id}?aba=editar`}>Editar</Link></td>
             </tr>
           ))}</tbody>
         </table></div>

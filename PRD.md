@@ -1,6 +1,6 @@
 # PRD: Portais Eventos
 
-**Versão:** 0.4 (versão 2 do sistema, pedida em 2026-11-04: ver seção 13; o que mudou está marcado com **NOVO** ou **SUBSTITUI**)
+**Versão:** 0.5 (versão 2 do sistema, pedida em 2026-11-04: ver seção 13; ajustes de 2026-11-05 na seção 14; o que mudou está marcado com **NOVO** ou **SUBSTITUI**)
 **Data:** 2026-10-28
 **Cliente/Dono:** Gabriel (Igreja Missionária Portais Eternos)
 
@@ -232,7 +232,7 @@ Mantém tudo que já foi decidido, exceto onde está marcado **SUBSTITUI**. Resp
 
 ### 13.1 Tema claro e escuro — NOVO
 - Claro e escuro em todo o app (público e painéis), incluindo a página do QR code.
-- Segue a preferência do aparelho por padrão. Há um botão para trocar, e a escolha fica salva naquele navegador.
+- **SUBSTITUÍDO em 2026-11-05:** o tema oficial é o **claro**, para todo mundo, e não segue mais o aparelho. O escuro continua existindo só por escolha da pessoa, no botão do topo; a escolha fica salva naquele navegador.
 
 ### 13.2 Datas do evento — NOVO
 - Data e hora de início e de término. O término é opcional (evento de um dia).
@@ -304,3 +304,22 @@ Ordem de cálculo: (1) preço do lote vigente por ingresso; (2) desconto por ida
 - Email de envio do sistema: **inscricao@portaiseventos.com** (conta da Hostinger). Usado para os QR codes, avisos da fila e convites do Supabase Auth (SMTP da Hostinger).
 - Chave do Google Maps (precisa de conta Google Cloud com faturamento ativo; conferir a cota gratuita e os preços atuais do Google antes de ligar).
 - Sessões (seção 7.1) continuam existindo: a sessão é escolhida uma vez por compra (decidido).
+
+## 14. Ajustes de 2026-11-05 — NOVO
+
+### 14.1 Tema oficial claro
+Ver 13.1.
+
+### 14.2 Editar e apagar evento (administrador)
+- **Editar:** botão "Editar" na lista de eventos e "Editar evento" na página do evento. O administrador altera tudo (nome, tipo, vagas, datas, local, banner, textos); o gerente altera só o que a seção 13.7 permite.
+- **Apagar:** só o administrador, na aba "Dados do evento", área "Apagar evento". Exige digitar o nome do evento para confirmar.
+- O sistema **não apaga** se houver compra **confirmada** (é preciso reembolsar ou cancelar cada uma antes) nem compra **aguardando pagamento** (expira em até 10 minutos). Para só parar de vender, usa-se "Encerrar inscrições".
+- Ao apagar, saem junto: lotes, faixas de idade, combos, cupons, perguntas, equipe, fila de espera, compras canceladas ou expiradas (com os pagamentos e reembolsos delas) e o banner. Não dá para desfazer.
+
+### 14.3 Email do QR code com a identidade do evento
+- O email mostra o **banner do evento** no topo; sem banner enviado, usa a arte automática do evento (mesmas cores da vitrine, com o nome, a data e "Portais Eternos").
+- Cada participante tem um cartão com nome, QR code nas cores do evento, o código e a orientação de apresentar na entrada, mais o botão "Abrir meus ingressos".
+- Os QR codes continuam anexados ao email e o conteúdo do QR code não mudou.
+
+### 14.4 "Meus ingressos"
+- Continua como está (decidido: sem login de participante, para não complicar a compra). A pessoa encontra os ingressos pelo email recebido e pela aba "Meus ingressos".

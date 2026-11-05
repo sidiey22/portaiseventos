@@ -1,33 +1,17 @@
 
-/* Conceito (v2): vitrine de eventos da igreja + painéis da equipe. Fundo escuro, banners 16:9 com o motivo do portal (arcos), amarelo-luz da Portais Eternos como único destaque. */
+/* Conceito (v2): vitrine de eventos da igreja + painéis da equipe. Tema claro oficial (escuro opcional), banners 16:9 com o motivo do portal (arcos), amarelo-luz da Portais Eternos como único destaque. */
 :root {
-  --bg: #0b0b0c;
-  --surface: #151517;
-  --surface-2: #1c1c1f;
-  --line: #2b2b30;
-  --fg: #f3f3f0;
-  --muted: #a3a3aa;
-  --accent: #ffee8c;
-  --btn-bg: #ffee8c;
-  --btn-ink: #1a1700;
-  --ok: #8fe3a2;
-  --bad: #ff9a90;
-  --proto-bg: rgba(255, 238, 140, .10);
-  --font: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  color-scheme: dark;
-}
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --bg: #f5f5f3; --surface: #ffffff; --surface-2: #f0f0ed; --line: #dcdcd6; --fg: #17171a; --muted: #5e5e66;
-    --accent: #6b5800; --btn-bg: #ffe970; --btn-ink: #1a1700; --ok: #17753a; --bad: #b3261e; --proto-bg: rgba(107, 88, 0, .09);
-    color-scheme: light;
-  }
-}
-:root[data-theme="light"] {
   --bg: #f5f5f3; --surface: #ffffff; --surface-2: #f0f0ed; --line: #dcdcd6; --fg: #17171a; --muted: #5e5e66;
   --accent: #6b5800; --btn-bg: #ffe970; --btn-ink: #1a1700; --ok: #17753a; --bad: #b3261e; --proto-bg: rgba(107, 88, 0, .09);
+  --font: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   color-scheme: light;
+}
+/* O tema oficial é o claro. O escuro só aparece quando a pessoa escolhe no botão do topo. */
+:root[data-theme="dark"] {
+  --bg: #0b0b0c; --surface: #151517; --surface-2: #1c1c1f; --line: #2b2b30; --fg: #f3f3f0; --muted: #a3a3aa;
+  --accent: #ffee8c; --btn-bg: #ffee8c; --btn-ink: #1a1700; --ok: #8fe3a2; --bad: #ff9a90; --proto-bg: rgba(255, 238, 140, .10);
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--fg); font: 400 15px/1.55 var(--font); margin: 0; min-height: 100vh; }
@@ -176,9 +160,7 @@ header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; b
 @media (prefers-reduced-motion: reduce) { .ev-card .art { transition: none; } .ev-card:hover .art { transform: none; } }
 
 /* ---------- versão 2: equipe, compra com vários ingressos, mapa, dashboards ---------- */
-:root { --map-ground: #1b1c1f; --map-road: #34363c; --map-water: #1d2a3a; --map-park: #1f2a1d; --chart-bar: #ffee8c; --chart-grid: #2b2b30; }
-@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --map-ground: #ecebe4; --map-road: #ffffff; --map-water: #c9dcef; --map-park: #d5e6c8; --chart-bar: #8a7300; --chart-grid: #dcdcd6; } }
-:root[data-theme="light"] { --map-ground: #ecebe4; --map-road: #ffffff; --map-water: #c9dcef; --map-park: #d5e6c8; --chart-bar: #8a7300; --chart-grid: #dcdcd6; }
+:root { --map-ground: #ecebe4; --map-road: #ffffff; --map-water: #c9dcef; --map-park: #d5e6c8; --chart-bar: #8a7300; --chart-grid: #dcdcd6; }
 :root[data-theme="dark"] { --map-ground: #1b1c1f; --map-road: #34363c; --map-water: #1d2a3a; --map-park: #1f2a1d; --chart-bar: #ffee8c; --chart-grid: #2b2b30; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -261,3 +243,4 @@ h2 .ico { margin-right: 4px; }
 .topnav .navlink:hover, .topnav .navlink[aria-current="page"] { color: var(--fg); background: var(--surface); }
 .tabs .tab { font: 600 14px var(--font); color: var(--muted); border-bottom: 2px solid transparent; padding: 10px 12px; white-space: nowrap; text-decoration: none; }
 .tabs .tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.danger-zone { border-color: var(--bad); }
