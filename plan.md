@@ -27,6 +27,8 @@ O Gabriel autorizou assumir as decisões e começar o código.
 
 ## Estado da implementação
 
+- **Versão 2 (2026-11-04): banco aplicado no Supabase** (migração `portais_eventos_v2`, aprovada pelo Gabriel). 18 tabelas com RLS e fechadas para as chaves públicas; funções só para o servidor; rotina de manutenção a cada minuto. **Falta:** o código do app da versão 2 (o site publicado ainda é a versão 1 e não funciona com o banco novo até a v2 ser publicada).
+
 - **Migração para o Supabase (2026-11-04): banco pronto.** Esquema, RLS, funções de regras e rotina de manutenção (pg_cron) criados e testados no projeto. Código do app trocado para o Supabase (build e tipos passam). **Falta:** testar de ponta a ponta com a chave real, ligar o Mercado Pago (checkout e webhook), email, check-in, cancelamento e reembolso.
 
 - **Fase 1 (fundação): feita.** Next.js + SQLite, login com papéis (admin e voluntário), limite de 5 admins, sessão em cookie assinado, limite de tentativas de login.
