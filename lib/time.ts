@@ -49,3 +49,54 @@ export function ageOn(birthDate: string, today: Date): number | null {
   if (tm < m || (tm === m && td < d)) age--;
   return age < 0 ? null : age;
 }
+
+/** "2026-11-27" no fuso da igreja. */
+export function dayKey(iso: string | Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(new Date(iso));
+}
+
+export function formatDate(iso: string): string {
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: TIME_ZONE, day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(iso));
+}
+
+/** "Sexta, 27 de nov às 19:00" */
+export function formatLong(iso: string): string {
+  const parts = new Intl.DateTimeFormat("pt-BR", { timeZone: TIME_ZONE, weekday: "long", day: "numeric", month: "short" }).formatToParts(new Date(iso));
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  let w = get("weekday");
+  w = w.charAt(0).toUpperCase() + w.slice(1).replace("-feira", "");
+  return `${w}, ${get("day")} de ${get("month").replace(".", "")} às ${formatTime(iso)}`;
+}
+
+export function formatRange(startsAt: string, endsAt: string | null): string {
+  if (!endsAt) return formatLong(startsAt);
+  if (dayKey(startsAt) === dayKey(endsAt)) return `${formatLong(startsAt)} até ${formatTime(endsAt)}`;
+  return `${formatLong(startsAt)} até ${formatLong(endsAt).replace(" às ", ", ")}`;
+}
+
+/** ISO -> valor de <input type="datetime-local"> no horário de Brasília. */
+export function isoToLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(new Date(iso).getTime() - 3 * 3600_000).toISOString().slice(0, 16);
+}
+
+/** Dias do evento (no máximo 15), do início ao término. */
+export function eventDays(startsAt: string, endsAt: string | null): string[] {
+  const out: string[] = [];
+  const end = dayKey(endsAt ?? startsAt);
+  let t = new Date(`${dayKey(startsAt)}T12:00:00-03:00`).getTime();
+  while (dayKey(new Date(t)) <= end && out.length < 15) {
+    out.push(dayKey(new Date(t)));
+    t += 86_400_000;
+  }
+  return out;
+}
+
+export function dayLabel(key: string): string {
+  const [, m, d] = key.split("-");
+  return `${d}/${m}`;
+}
+
+export function ageAt(birthDate: string, refKey: string): number | null {
+  return ageOn(birthDate, new Date(`${refKey}T12:00:00-03:00`));
+}

@@ -14,7 +14,7 @@ Portais Eventos é uma aplicação web da igreja Missionária Portais Eternos pa
 - Documentação e comentários no código em português, salvo convenção técnica em contrário.
 - Nomes de variáveis, funções e arquivos em inglês, sem acentos.
 
-## Regras de negócio (resumo do PRD)
+## Regras de negócio (resumo do PRD; a versão 2 está na seção 13 do PRD e prevalece)
 
 - **Eventos** podem ser pagos ou gratuitos. Eventos gratuitos ainda podem exigir inscrição para contagem.
 - **Sessões:** eventos podem ter sessões. Quando houver, o participante escolhe a sessão na inscrição.
@@ -34,7 +34,8 @@ Portais Eventos é uma aplicação web da igreja Missionária Portais Eternos pa
 | Papel | Acesso |
 |---|---|
 | Participante | Inscrição, pagamento, QR code, cancelamento em até 7 dias. |
-| Voluntário | Somente a lista do dia do evento, para check-in. Sem telefone, email ou valores. Login compartilhado. |
+| Gerente do evento | Só nos eventos dele: inscritos, dashboards, valores, exportação, editar evento, convidar credenciadores. Sem reembolso, cupons ou combos. |
+| Credenciamento | Só o check-in dos eventos para os quais foi convidado. Sem telefone, email ou valores. Login individual. |
 | Administrador | Tudo. Único papel que cria eventos. Máximo de 5. |
 
 Nunca exponha dados financeiros ou de contato a voluntários. Trate essa regra como restrição de segurança, não apenas de interface.
@@ -66,7 +67,7 @@ Revisáveis a qualquer momento. Se o Gabriel mudar uma, atualize aqui, no `PRD.m
 - **D2 Fila de espera:** automática. Quando uma vaga abre, o primeiro da fila recebe email com link e tem 12 horas para iniciar o pagamento (depois disso passa para o próximo). O pagamento em si segue a reserva de 10 minutos.
 - **D3 Lotes:** quem já pagou mantém o preço pago. O lote vigente é o primeiro com vagas disponíveis dentro da data; novos inscritos pagam o preço do lote vigente.
 - **D4 Líder:** nome e WhatsApp do líder ficam em configuração editável pelo administrador e aparecem na tela de cancelamento fora do prazo.
-- **D5 Voluntários:** um login compartilhado, com senha trocada pelo administrador. Sem registro individual de quem fez o check-in (limitação conhecida).
+- **D5 (substituída em 2026-11-04):** login individual por convite (Supabase Auth). "Voluntário" agora se chama Credenciamento. Ver PRD seção 13.7.
 - **D6 Mercado Pago:** credenciais por variável de ambiente. Sem credenciais, o sistema roda em modo simulado para desenvolvimento.
 - **On Fire Camp:** fica fora do sistema (processo atual). O sistema vale a partir do próximo evento.
 - **D7 Acampamentos (proposta de 2026-10-29, aguardando confirmação):** hospedagem incluída no preço; qualquer combinação de dias vale; camas contadas por noite; estimativa de refeições com regra de exemplo (café = dormiu na noite anterior, almoço = sessão da manhã, jantar = sessão da noite ou dorme).

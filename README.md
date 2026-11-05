@@ -9,39 +9,63 @@ Precisa de Node 22 ou mais novo.
 
 ```bash
 npm install
-cp .env.example .env.local   # preencha SUPABASE_SECRET_KEY, as senhas e o SESSION_SECRET
+cp .env.example .env.local   # preencha as chaves (ver comentários no arquivo)
 npm run dev                  # http://localhost:3000
 ```
-
-Na primeira execução são criados o administrador (`ADMIN_LOGIN` / `ADMIN_PASSWORD`) e o login
-compartilhado dos voluntários (`VOLUNTEER_LOGIN` / `VOLUNTEER_PASSWORD`).
 
 ## Comandos
 
 | Comando | O que faz |
 |---|---|
 | `npm run dev` | Servidor de desenvolvimento |
-| `npm run build` e `npm start` | Versão de produção |
-| `npm test` | Testes das regras de negócio |
+| `npm run build` e `npm start` | Versão de produção (build com webpack, compatível com a Hostinger) |
+| `npm test` | Testes das regras que não dependem do banco |
 | `npm run typecheck` | Verificação de tipos |
 
-## Como usar (versão atual)
+## Onde fica cada coisa
 
-1. Entre em **Equipe** com o login de administrador.
-2. **Novo evento**: nome, local, data, vagas e tipo (gratuito ou pago).
-3. Eventos pagos: adicione pelo menos um **lote de preço**. Se houver mais de um horário, adicione **sessões**.
-4. **Publicar inscrições**. O evento aparece na página inicial.
-5. A pessoa se inscreve, e o ingresso com QR code aparece na tela e é enviado por email.
-
-Sem `SMTP_URL`, os emails aparecem no log do servidor. Sem `MERCADOPAGO_ACCESS_TOKEN`, o pagamento é
-simulado por um botão que só existe fora de produção.
+- `app/(site)`: vitrine, página do evento com a compra, página da compra com os QR codes, "Meus ingressos".
+- `app/equipe`: login da equipe (Supabase Auth), visão geral, gestão do evento (painel, dados, lotes e preços, formulário, equipe), cupons, administradores e check-in.
+- `app/api/webhooks/mercadopago`: aviso de pagamento do Mercado Pago (assinatura conferida).
+- `lib/`: acesso ao banco, permissões, preços, emails, Mercado Pago e relatórios.
+- `supabase/migrations`: migrações do banco. As regras de vaga, lote, idade, combo, cupom, fila, pagamento, check-in e permissões ficam em funções SQL.
+- `instrumentation.ts`: rotina a cada minuto que envia os QR codes pendentes e avisa quem saiu da fila.
 
 ## Produção (Hostinger + Supabase)
 
-- O banco é o **Supabase** (Postgres). O esquema e as funções de regras já estão aplicados no projeto.
-  As tabelas têm RLS ligado e nenhuma política: só o servidor acessa, com a chave secreta.
-- Na Hostinger: app Node.js 22, importado deste repositório. Defina as variáveis de ambiente no painel:
-  `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SESSION_SECRET` (texto longo e aleatório), `PUBLIC_URL`,
-  `ADMIN_PASSWORD`, `VOLUNTEER_PASSWORD` e, depois, `SMTP_URL`, `MERCADOPAGO_ACCESS_TOKEN`.
-- Nunca coloque a chave secreta no Git nem no navegador. O Supabase guarda CPF e telefones, inclusive de menores.
-- O banco libera reservas vencidas e chama a fila de espera sozinho, a cada minuto (pg_cron).
+1. Variáveis de ambiente na Hostinger: as do `.env.example`.
+2. Supabase → Authentication:
+   - **Sign In / Providers**: desligue "Allow new users to sign up" (só entra quem for convidado).
+   - **URL Configuration**: Site URL `https://portaiseventos.com`; Redirect URLs `https://portaiseventos.com/**`.
+   - **Emails → SMTP Settings**: `smtp.hostinger.com`, porta 465, usuário e remetente `inscricao@portaiseventos.com`.
+   - **Emails → Templates**: use os modelos abaixo (o link precisa ter `token_hash`).
+3. Mercado Pago: webhook em `https://portaiseventos.com/api/webhooks/mercadopago`, evento "Pagamentos".
+
+### Modelos de email do Supabase
+
+**Invite user** — assunto: `Convite para a equipe do Portais Eventos`
+
+```html
+<h2>Você foi convidado para a equipe do Portais Eventos</h2>
+<p>Clique no link abaixo para criar a sua senha e entrar.</p>
+<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite">Criar minha senha</a></p>
+<p>Se você não esperava este convite, ignore este email.</p>
+```
+
+**Reset password** — assunto: `Criar ou trocar sua senha do Portais Eventos`
+
+```html
+<h2>Criar ou trocar sua senha</h2>
+<p>Clique no link abaixo para definir uma nova senha.</p>
+<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery">Definir minha senha</a></p>
+<p>Se você não pediu, ignore este email. Sua senha continua a mesma.</p>
+```
+
+## Segurança
+
+- Todas as tabelas com RLS ligado e sem políticas; tabelas novas já nascem fechadas. Só o servidor acessa, com a chave secreta.
+- O navegador não recebe nenhuma chave do Supabase. A única chave pública é a do Google Maps, restrita ao domínio.
+- Permissões conferidas no servidor e de novo nas funções do banco (admin, gerente, credenciamento).
+- Webhook do Mercado Pago com assinatura conferida; o pagamento é consultado direto na API antes de confirmar.
+- Limite de tentativas no login, na compra e no check-in. Cabeçalhos de segurança (HSTS, proteção contra iframe).
+- Exportação protegida contra fórmulas maliciosas no Excel. Gerentes não exportam CPF.
