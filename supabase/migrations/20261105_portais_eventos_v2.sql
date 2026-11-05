@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Portais Eventos — migração da versão 2 (pedido de 2026-11-04)
--- NÃO EXECUTAR sem a aprovação do Gabriel.
+-- Aprovada pelo Gabriel em 2026-11-04 (lote: todos os ingressos da compra pagam o preço do lote vigente).
 --
 -- O que muda:
 --   * Compras com vários ingressos (orders + tickets) no lugar de registrations.
@@ -388,7 +388,7 @@ declare
   n integer := jsonb_array_length(p_people);
   ref date;
   t jsonb := '[]'::jsonb;          -- ingressos calculados
-  lot record; left_in_lot integer; i integer := 0;
+  cur public.lots; i integer := 0;
   base integer; disc integer; age integer; band public.age_bands;
   covered integer := 0; combo record; k integer; share integer; idx integer;
   order_idx integer[];
@@ -400,23 +400,14 @@ begin
   if n < 1 or n > 20 then raise exception 'bad_quantity' using errcode = 'P0001'; end if;
   ref := coalesce(ev.age_ref_date, (ev.starts_at at time zone 'America/Sao_Paulo')::date);
 
-  -- 1. Lote por ingresso (os que não cabem no lote atual vão para o próximo)
+  -- 1. Lote: todos os ingressos da compra pagam o preço do lote vigente (decidido em 2026-11-04).
+  --    Se a compra passar da quantidade que resta no lote, o lote passa um pouco; o próximo começa depois.
   if ev.kind = 'paid' then
-    for lot in
-      select l.*, l.quantity - public.lot_sold(l.id) as remaining from public.lots l
-       where l.event_id = p_event
-         and (l.starts_at is null or l.starts_at <= now())
-         and (l.ends_at is null or l.ends_at > now())
-       order by l.position
-    loop
-      left_in_lot := lot.remaining;
-      while left_in_lot > 0 and i < n loop
-        t := t || jsonb_build_object('position', i, 'lot_id', lot.id, 'base', lot.price_cents);
-        i := i + 1; left_in_lot := left_in_lot - 1;
-      end loop;
-      exit when i >= n;
+    cur := public.current_lot(p_event);
+    if cur.id is null then raise exception 'no_lot' using errcode = 'P0001'; end if;
+    for i in 0 .. n - 1 loop
+      t := t || jsonb_build_object('position', i, 'lot_id', cur.id, 'base', cur.price_cents);
     end loop;
-    if i < n then raise exception 'not_enough_lot' using errcode = 'P0001'; end if;
   else
     for i in 0 .. n - 1 loop
       t := t || jsonb_build_object('position', i, 'lot_id', null, 'base', 0);

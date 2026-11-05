@@ -250,11 +250,11 @@ Mantém tudo que já foi decidido, exceto onde está marcado **SUBSTITUI**. Resp
 - Lote esgotado antes do fim passa para o próximo. Sem vagas no evento, vale a fila de espera.
 - Entre dois lotes (um terminou e o próximo não começou), as vendas ficam fechadas e a página mostra quando o próximo lote abre.
 - A página pública mostra o lote atual e quando ele termina.
-- Se uma compra tiver mais ingressos do que restam no lote atual, os que sobram são cobrados pelo próximo lote.
+- Todos os ingressos de uma compra pagam o preço do lote vigente no momento da compra, mesmo que passem da quantidade que restava nesse lote (decidido). O próximo lote começa depois.
 
 ### 13.5 Compra com vários ingressos — SUBSTITUI a regra de uma inscrição por pessoa
 - Um comprador compra um ou mais ingressos de uma vez.
-- Dados do comprador: nome, email, telefone e CPF. O comprador declara ter 18 anos ou mais e é o responsável pelos menores da compra (substitui o telefone do responsável).
+- Dados do comprador: nome, email, telefone e CPF. O comprador declara ter 18 anos ou mais e é o responsável pelos menores da compra; isso substitui o telefone do responsável (decidido).
 - Dados de cada participante: nome, gênero (Feminino ou Masculino), data de nascimento e as perguntas do evento (13.8).
 - Um único pagamento no Mercado Pago cobre a compra toda. Compra com total zero (por exemplo, só crianças grátis) é confirmada sem pagamento.
 - Um QR code por participante, todos enviados ao email do comprador. Cada QR faz o check-in só daquele participante.
@@ -301,6 +301,6 @@ Ordem de cálculo: (1) preço do lote vigente por ingresso; (2) desconto por ida
 - Chave do Google Maps restrita por domínio e por API.
 
 ### 13.11 Pendências desta versão
-- Configurar o envio de email do Supabase Auth (convites) com a conta de email da Hostinger.
+- Email de envio do sistema: **inscricao@portaiseventos.com** (conta da Hostinger). Usado para os QR codes, avisos da fila e convites do Supabase Auth (SMTP da Hostinger).
 - Chave do Google Maps (precisa de conta Google Cloud com faturamento ativo; conferir a cota gratuita e os preços atuais do Google antes de ligar).
-- Sessões (seção 7.1) continuam existindo: a sessão é escolhida uma vez por compra.
+- Sessões (seção 7.1) continuam existindo: a sessão é escolhida uma vez por compra (decidido).
