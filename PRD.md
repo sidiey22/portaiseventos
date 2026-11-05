@@ -1,6 +1,6 @@
 # PRD: Portais Eventos
 
-**Versão:** 0.3 (inclui o módulo de acampamentos e retiros, proposto em 2026-10-29)
+**Versão:** 0.4 (versão 2 do sistema, pedida em 2026-11-04: ver seção 13; o que mudou está marcado com **NOVO** ou **SUBSTITUI**)
 **Data:** 2026-10-28
 **Cliente/Dono:** Gabriel (Igreja Missionária Portais Eternos)
 
@@ -57,6 +57,8 @@ Hoje a igreja precisa saber quantas pessoas vêm aos eventos, cobrar quem é pag
 
 ## 6. Papéis e permissões
 
+> **SUBSTITUÍDO** pela seção 13.7 (Administrador, Gerente do evento e Credenciamento, com login individual). A tabela abaixo é a da versão 1.
+
 | Papel | Pode fazer |
 |---|---|
 | **Participante** (público) | Se inscrever, pagar, receber QR code, cancelar a própria inscrição em até 7 dias. |
@@ -93,9 +95,13 @@ Hoje a igreja precisa saber quantas pessoas vêm aos eventos, cobrar quem é pag
 
 ### 7.4 Duplicatas
 
+> **SUBSTITUÍDO** pela seção 13.5: a trava passa a olhar o CPF do comprador.
+
 - O sistema **bloqueia** inscrição duplicada: a mesma pessoa não pode se inscrever duas vezes no mesmo evento.
 
 ### 7.5 Check-in
+
+> **ATUALIZADO** pela seção 13.7: o check-in é feito pelo Credenciamento, por participante e uma vez por dia.
 
 - Voluntário escaneia o QR code com o celular.
 - Alternativa: check-in manual num computador, buscando o nome da pessoa e confirmando.
@@ -118,6 +124,8 @@ Hoje a igreja precisa saber quantas pessoas vêm aos eventos, cobrar quem é pag
 - Dashboards gerais.
 
 ### 7.8 Campos da inscrição
+
+> **SUBSTITUÍDO** pelas seções 13.5 e 13.8 (dados do comprador, dados por participante e perguntas personalizadas).
 
 Campos obrigatórios:
 
@@ -217,3 +225,82 @@ Acampamentos e retiros têm vários dias, duas sessões por dia (manhã e noite)
 - Divisão de quartos ou beliches por pessoa.
 - Cardápio, lista de compras e custo da comida.
 - Cobrança separada por refeição.
+
+## 13. Versão 2 (pedido de 2026-11-04) — NOVO
+
+Mantém tudo que já foi decidido, exceto onde está marcado **SUBSTITUI**. Respostas do Gabriel às dúvidas estão marcadas com (decidido).
+
+### 13.1 Tema claro e escuro — NOVO
+- Claro e escuro em todo o app (público e painéis), incluindo a página do QR code.
+- Segue a preferência do aparelho por padrão. Há um botão para trocar, e a escolha fica salva naquele navegador.
+
+### 13.2 Datas do evento — NOVO
+- Data e hora de início e de término. O término é opcional (evento de um dia).
+- Fuso America/Sao_Paulo em tudo.
+
+### 13.3 Local com Google Maps — NOVO
+- O admin ou o gerente busca o endereço (autocompletar do Google) e ajusta o PIN no mapa.
+- Guardamos nome do local, endereço completo, latitude e longitude.
+- A página pública mostra o mapa e o botão "Como chegar".
+- A chave do Google fica restrita ao domínio portaiseventos.com e só às APIs Maps JavaScript e Places.
+
+### 13.4 Lotes com virada automática por data — NOVO
+- Cada lote tem preço, quantidade, início e fim.
+- O lote vigente é calculado no servidor pela data atual: o primeiro lote (em ordem) que já começou, ainda não terminou e tem ingressos.
+- Lote esgotado antes do fim passa para o próximo. Sem vagas no evento, vale a fila de espera.
+- Entre dois lotes (um terminou e o próximo não começou), as vendas ficam fechadas e a página mostra quando o próximo lote abre.
+- A página pública mostra o lote atual e quando ele termina.
+- Se uma compra tiver mais ingressos do que restam no lote atual, os que sobram são cobrados pelo próximo lote.
+
+### 13.5 Compra com vários ingressos — SUBSTITUI a regra de uma inscrição por pessoa
+- Um comprador compra um ou mais ingressos de uma vez.
+- Dados do comprador: nome, email, telefone e CPF. O comprador declara ter 18 anos ou mais e é o responsável pelos menores da compra (substitui o telefone do responsável).
+- Dados de cada participante: nome, gênero (Feminino ou Masculino), data de nascimento e as perguntas do evento (13.8).
+- Um único pagamento no Mercado Pago cobre a compra toda. Compra com total zero (por exemplo, só crianças grátis) é confirmada sem pagamento.
+- Um QR code por participante, todos enviados ao email do comprador. Cada QR faz o check-in só daquele participante.
+- Cada participante ocupa uma vaga. A reserva de 10 minutos vale para a compra inteira.
+- Cancelamento em até 7 dias e reembolso continuam totais e valem para a compra inteira.
+- Duplicidade: o mesmo CPF de comprador não pode ter duas compras ativas no mesmo evento.
+- Vagas insuficientes (decidido): se a compra pede mais ingressos do que as vagas restantes, ela é bloqueada e a pessoa vê quantas vagas restam. A fila de espera só abre quando o evento esgota. Na fila, cada compra espera com a sua quantidade; quando abrem vagas, é chamada a primeira compra da fila que cabe nas vagas abertas.
+
+### 13.6 Preços, descontos, cupons e combos — NOVO (só o administrador cria cupons e combos)
+Ordem de cálculo: (1) preço do lote vigente por ingresso; (2) desconto por idade por ingresso; (3) combo; (4) cupom sobre o total.
+- **Desconto por idade:** faixas por evento (idade mínima e máxima) com desconto percentual, em valor ou grátis. Uma data de referência por evento define a idade de cada participante. Validação no servidor.
+- **Combo:** nome, quantidade de ingressos e preço fechado, por evento. A pessoa escolhe combos e ingressos avulsos. Os ingressos dentro do combo pagam só o preço do combo, sem desconto por idade (decidido). O sistema coloca no combo os participantes que sairiam mais caros avulsos, para o total ficar o menor possível.
+- **Cupom:** código, percentual ou valor fixo, validade, limite de usos, um evento ou todos, ativo ou inativo. O cupom é aplicado por último, sobre o total, e o total nunca fica negativo. O admin vê quantas vezes cada cupom foi usado.
+
+### 13.7 Papéis e permissões — SUBSTITUI o login compartilhado
+"Voluntário" passa a se chamar **Credenciamento** em todo o app.
+
+| Papel | Pode |
+|---|---|
+| Administrador (máximo 5) | Tudo: eventos, cupons, combos, reembolsos, visão geral. Define os gerentes de cada evento por email. |
+| Gerente do evento | Só nos eventos dele: inscritos, dashboards, valores, exportação, editar evento (descrição, lotes, formulário, local, datas), convidar e remover credenciadores. Não faz reembolso, não cria cupom nem combo, não vê outros eventos. |
+| Credenciador | Só o check-in dos eventos para os quais foi convidado: QR code pelo celular e busca por nome. Vê nome do participante e situação do check-in, sem contatos nem valores. |
+
+- Login individual com convite por email, pelo Supabase Auth (decidido). O convite leva a um link para criar a senha.
+- As permissões são conferidas no servidor e de novo nas funções do banco.
+- Check-in uma vez por dia em eventos de vários dias (decidido). Em evento de um dia, uma vez só.
+
+### 13.8 Formulário personalizável por evento — NOVO
+- Campos fixos: dados do comprador; nome, gênero e data de nascimento de cada participante.
+- Perguntas extras por evento, criadas pelo admin ou gerente: texto curto, texto longo, sim/não, escolha única, múltipla escolha, número e data. Cada uma obrigatória ou opcional, respondida por participante.
+- As respostas aparecem na lista e na exportação.
+
+### 13.9 Dashboards por evento — NOVO
+- Cards: arrecadado, inscritos, check-ins, vagas restantes, fila de espera.
+- Filtros: gênero, lote, status do pagamento, faixa de idade, com ou sem check-in, respostas das perguntas.
+- Gráficos: inscrições ao longo do tempo e check-ins por dia.
+- Exportação CSV e Excel respeitando os filtros (admin e gerente).
+- Visão geral de todos os eventos para o admin.
+
+### 13.10 Segurança — NOVO
+- RLS ligado em todas as tabelas, sem acesso para as chaves públicas; tabelas novas já nascem fechadas.
+- Chave secreta do Supabase só no servidor. O navegador não recebe nenhuma chave do Supabase.
+- Banners num bucket público de imagens, com tipo e tamanho limitados; o envio passa pelo servidor.
+- Chave do Google Maps restrita por domínio e por API.
+
+### 13.11 Pendências desta versão
+- Configurar o envio de email do Supabase Auth (convites) com a conta de email da Hostinger.
+- Chave do Google Maps (precisa de conta Google Cloud com faturamento ativo; conferir a cota gratuita e os preços atuais do Google antes de ligar).
+- Sessões (seção 7.1) continuam existindo: a sessão é escolhida uma vez por compra.
