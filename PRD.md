@@ -323,3 +323,22 @@ Ver 13.1.
 
 ### 14.4 "Meus ingressos"
 - Continua como está (decidido: sem login de participante, para não complicar a compra). A pessoa encontra os ingressos pelo email recebido e pela aba "Meus ingressos".
+
+## 15. Ajustes de 2026-11-08 — NOVO
+
+### 15.1 Coordenadas do local (colar do Google Maps)
+- Latitude e longitude são campos de texto livre (pode colar, digitar e editar). Continuam opcionais: as duas vazias ou as duas preenchidas.
+- Colar em qualquer um dos dois campos preenche os dois quando o texto traz o par. Formatos aceitos: "-19.916681, -43.934493", vírgula decimal ("-19,916681 -43,934493"), espaços e quebras de linha extras, graus (19°55'00.0"S 43°56'04.2"W, com N/S/L/O ou N/S/E/W) e link do Google Maps (inclusive o link curto maps.app.goo.gl).
+- Link curto: só o servidor abre, e só se o destino for do próprio Google (https, até 4 redirecionamentos, 5 segundos). Se não der, a tela pede o link completo ou as coordenadas.
+- Validação na tela e de novo no servidor ao salvar: latitude entre -90 e 90, longitude entre -180 e 180. Mensagens em português. Par em ordem trocada gera erro com dica (não troca sozinho).
+- Com coordenadas válidas, o mapa mostra o PIN e o link "Abrir este ponto no Google Maps". A busca por endereço continua.
+
+### 15.2 Confirmação de leitura no check-in
+- A decisão é sempre do servidor; a tela só mostra o resultado.
+- **Check-in realizado:** tela cheia verde com nome do participante, nome do evento, dia e horário; bipe curto e vibração curta; some em 3 segundos e a câmera fica pronta.
+- **Avisos (amarelo, outro som e vibração):** já usado hoje (mostra o horário do primeiro uso) e hoje não é dia do evento.
+- **Recusas (vermelho, som grave e vibração longa):** ingresso de outro evento ou evento sem acesso (sem mostrar o nome), ingresso cancelado ou reembolsado, pagamento não confirmado, QR code inválido.
+- QR ilegível: o leitor não distingue de "nada na frente"; após 10 segundos sem leitura aparece a dica para aproximar ou usar a busca por nome.
+- O mesmo código lido de novo em menos de 6 segundos é ignorado.
+- A tela de credenciamento mostra "X check-ins feitos hoje".
+- Só aparece o nome do participante: nunca CPF, telefone, email ou valores.

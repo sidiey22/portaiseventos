@@ -37,10 +37,10 @@ export default async function CheckinPage({ searchParams }: { searchParams: Prom
         <button className="btn sec" type="submit">Trocar</button>
       </form>
       {!isDay && <div className="notice">Hoje não é dia deste evento ({days.map(dayLabel).join(", ")}). O check-in só funciona nos dias do evento.</div>}
-      <p style={{ margin: 0 }}><strong>{inn} de {list.length}</strong> entraram hoje{days.length > 1 ? ` (dia ${days.indexOf(today) + 1} de ${days.length})` : ""}</p>
+      <p style={{ margin: 0 }}><strong>{inn}</strong> {inn === 1 ? "check-in feito hoje" : "check-ins feitos hoje"} · de {list.length} {list.length === 1 ? "ingresso" : "ingressos"}{days.length > 1 ? ` (dia ${days.indexOf(today) + 1} de ${days.length})` : ""}</p>
       <div className="progress" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>
       <h2>Ler QR code</h2>
-      <Scanner eventId={e.id} />
+      <Scanner eventId={e.id} initialToday={inn} />
       <h2>Buscar por nome</h2>
       <form method="get" className="actions" style={{ alignItems: "end" }}>
         <input type="hidden" name="evento" value={e.id} />

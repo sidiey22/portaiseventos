@@ -10,6 +10,8 @@ import { db, unwrap } from "@/lib/supabase";
 import { localInputToIso } from "@/lib/time";
 import { isEmail, parseMoneyToCents, slugify } from "@/lib/validation";
 import { friendlyError } from "@/lib/errors";
+import { allow } from "@/lib/rate-limit";
+import { parseCoordinateFields, resolveShortLink, type PairResult } from "@/lib/coords";
 
 const txt = (d: FormData, k: string) => String(d.get(k) ?? "").trim();
 const int = (d: FormData, k: string) => Number.parseInt(txt(d, k), 10);
@@ -48,8 +50,9 @@ export async function updateEventAction(d: FormData): Promise<void> {
   if (txt(d, "endsAt") && (!end || end < start!)) back(id, "editar", { erro: "O término precisa ser depois do início." });
   const placeName = txt(d, "placeName");
   if (placeName.length < 2) back(id, "editar", { erro: "Informe o nome do local." });
-  const lat = txt(d, "lat") ? Number(txt(d, "lat")) : null, lng = txt(d, "lng") ? Number(txt(d, "lng")) : null;
-  if ((lat !== null && !(lat >= -90 && lat <= 90)) || (lng !== null && !(lng >= -180 && lng <= 180))) back(id, "editar", { erro: "Coordenadas do mapa inválidas." });
+  const coords = parseCoordinateFields(d.get("lat"), d.get("lng")); // mesma regra do navegador; aceita vírgula, graus e "lat, lng"
+  if (!coords.ok) back(id, "editar", { erro: coords.error });
+  const lat = coords.ok ? coords.lat : null, lng = coords.ok ? coords.lng : null;
   const patch: Record<string, unknown> = {
     summary: txt(d, "summary").slice(0, 160), description: txt(d, "description").slice(0, 8000), starts_at: start, ends_at: end,
     place_name: placeName.slice(0, 200), place_address: txt(d, "placeAddress").slice(0, 300), place_lat: lat, place_lng: lng,
@@ -66,6 +69,13 @@ export async function updateEventAction(d: FormData): Promise<void> {
   if (error) back(id, "editar", { erro: "Não foi possível salvar. Confira os dados." });
   await db().rpc("promote_waitlist", { p_event: id });
   back(id, "editar", { ok: "Alterações salvas." });
+}
+
+/** Abre um link encurtado do Google Maps (maps.app.goo.gl) e devolve as coordenadas. Só para a equipe e com limite de uso. */
+export async function resolveMapsLinkAction(link: string): Promise<PairResult> {
+  const s = await requireStaff();
+  if (!allow(`maps:${s.id}`, 20, 60_000)) return { ok: false, error: "Muitas tentativas seguidas. Aguarde um instante." };
+  return resolveShortLink(String(link ?? "").slice(0, 300));
 }
 
 export async function uploadBannerAction(d: FormData): Promise<void> {
