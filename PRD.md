@@ -351,6 +351,7 @@ Pedido do Gabriel: a aba Eventos do site da igreja (portaiseternos.com.br) mostr
 
 - Endereço: `GET https://portaiseventos.com/api/public/eventos` (somente leitura; qualquer outro método responde 405).
 - Só eventos publicados e que ainda não terminaram, em ordem de data.
-- Campos fixos (`lib/public-events.ts`): nome, resumo, local, início, fim, gratuito, preço a partir de (com desconto por idade), vendas abertas, esgotado, imagem (banner) e link da página do evento. Nada de inscritos, CPF, emails, pagamentos, valores arrecadados, endereço completo ou dados da equipe.
+- Campos fixos (`lib/public-events.ts`): nome, resumo, local, início, fim, gratuito, preço a partir de (com desconto por idade), vendas abertas, esgotado, imagem (banner) e link da página do evento.
+- Imagem: o banner enviado; sem banner, `GET /api/public/eventos/{slug}/banner` devolve a arte automática (a mesma da vitrine do app, `lib/banner-art.ts`). Nada de inscritos, CPF, emails, pagamentos, valores arrecadados, endereço completo ou dados da equipe.
 - CORS liberado só para `https://portaiseternos.com.br` e `https://www.portaiseternos.com.br`.
 - Limite de 60 acessos por minuto por IP e cache de 60 segundos no servidor.

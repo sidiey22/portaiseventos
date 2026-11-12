@@ -36,7 +36,7 @@ async function load() {
   const base = process.env.PUBLIC_URL || "https://portaiseventos.com";
   const eventos = await Promise.all(list.map(async (e) => {
     const av = await availability(e);
-    return toPublic(e, { seatsLeft: av.seatsLeft, lotPrice: av.lot?.price_cents ?? null, salesOpen: av.salesOpen }, base, bannerUrl(e.banner_path));
+    return toPublic(e, { seatsLeft: av.seatsLeft, lotPrice: av.lot?.price_cents ?? null, salesOpen: av.salesOpen }, base, bannerUrl(e.banner_path) ?? `${base.replace(/\/$/, "")}/api/public/eventos/${encodeURIComponent(e.slug)}/banner`);
   }));
   return { eventos, atualizado_em: new Date().toISOString() };
 }

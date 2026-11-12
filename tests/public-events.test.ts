@@ -2,6 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { allowedOrigin, minPrice, toPublic } from "../lib/public-events.ts";
+import { bannerSvg } from "../lib/banner-art.ts";
 
 const ALLOWED_KEYS = ["nome", "resumo", "local", "inicio", "fim", "gratuito", "preco_a_partir_centavos", "vendas_abertas", "esgotado", "imagem", "link"].sort();
 
@@ -42,4 +43,11 @@ test("CORS só para o site da igreja", () => {
   assert.equal(allowedOrigin("https://portaiseternos.com.br.evil.com"), null);
   assert.equal(allowedOrigin("https://outro-site.com"), null);
   assert.equal(allowedOrigin(null), null);
+});
+
+test("arte automática do banner escapa o nome do evento", () => {
+  const svg = bannerSvg({ id: 1, name: "<script>alert(1)</script> & Culto", starts_at: "2026-12-19T12:00:00Z", ends_at: "2026-12-21T01:00:00Z", kind: "free" });
+  assert.ok(!svg.includes("<script>"));
+  assert.ok(svg.includes("&lt;SCRIPT&gt;"));
+  assert.ok(svg.includes("19/12 A 20/12"));
 });
