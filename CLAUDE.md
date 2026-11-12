@@ -45,7 +45,7 @@ Nunca exponha dados financeiros ou de contato a voluntários. Trate essa regra c
 Não implemente nem sugira como parte desta versão:
 
 - Controle de doações
-- Integrações com outros sistemas (incluindo Juventude Connect)
+- Integrações com outros sistemas (incluindo Juventude Connect). Exceção autorizada em 2026-11-12: a vitrine pública somente leitura `/api/public/eventos` para o site da igreja (PRD seção 16.1). Não acrescente campos a ela sem confirmar com o Gabriel.
 - Transmissão ao vivo
 - Emissão de certificados
 - App nativo

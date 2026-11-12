@@ -27,6 +27,7 @@ npm run dev                  # http://localhost:3000
 - `app/(site)`: vitrine, página do evento com a compra, página da compra com os QR codes, "Meus ingressos".
 - `app/equipe`: login da equipe (Supabase Auth), visão geral, gestão do evento (painel, dados, lotes e preços, formulário, equipe), cupons, administradores e check-in.
 - `app/api/webhooks/mercadopago`: aviso de pagamento do Mercado Pago (assinatura conferida).
+- `app/api/public/eventos`: vitrine pública, somente leitura, lida pelo site da igreja (campos fixos em `lib/public-events.ts`).
 - `lib/`: acesso ao banco, permissões, preços, emails, Mercado Pago e relatórios.
 - `supabase/migrations`: migrações do banco. As regras de vaga, lote, idade, combo, cupom, fila, pagamento, check-in e permissões ficam em funções SQL.
 - `instrumentation.ts`: rotina a cada minuto que envia os QR codes pendentes e avisa quem saiu da fila.

@@ -342,3 +342,15 @@ Ver 13.1.
 - O mesmo código lido de novo em menos de 6 segundos é ignorado.
 - A tela de credenciamento mostra "X check-ins feitos hoje".
 - Só aparece o nome do participante: nunca CPF, telefone, email ou valores.
+
+## 16. Ajustes de 2026-11-12 — NOVO
+
+### 16.1 Vitrine pública para o site da igreja
+
+Pedido do Gabriel: a aba Eventos do site da igreja (portaiseternos.com.br) mostra ao vivo os eventos daqui. É a única exceção autorizada à regra "sem integrações" da versão 1.
+
+- Endereço: `GET https://portaiseventos.com/api/public/eventos` (somente leitura; qualquer outro método responde 405).
+- Só eventos publicados e que ainda não terminaram, em ordem de data.
+- Campos fixos (`lib/public-events.ts`): nome, resumo, local, início, fim, gratuito, preço a partir de (com desconto por idade), vendas abertas, esgotado, imagem (banner) e link da página do evento. Nada de inscritos, CPF, emails, pagamentos, valores arrecadados, endereço completo ou dados da equipe.
+- CORS liberado só para `https://portaiseternos.com.br` e `https://www.portaiseternos.com.br`.
+- Limite de 60 acessos por minuto por IP e cache de 60 segundos no servidor.
