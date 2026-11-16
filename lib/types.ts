@@ -36,7 +36,12 @@ export type Order = {
   subtotal_cents: number; age_discount_cents: number; combo_discount_cents: number; coupon_discount_cents: number; total_cents: number;
   expires_at: string | null; offered_until: string | null; offer_notified_at: string | null; tickets_emailed_at: string | null;
   created_at: string; confirmed_at: string | null; cancelled_at: string | null;
+  payment_method: PaymentMethod; recorded_by: string | null;
 };
+/** Forma de pagamento: "online" é o site (Mercado Pago ou gratuito); as outras são registradas pela equipe na inscrição presencial. */
+export type PaymentMethod = "online" | "cash" | "pix_direct" | "card_machine";
+export const PAYMENT_METHOD: Record<PaymentMethod, string> = { online: "Online", cash: "Dinheiro", pix_direct: "Pix direto para a igreja", card_machine: "Maquininha de cartão" };
+export const ONSITE_METHODS = ["cash", "pix_direct", "card_machine"] as const;
 export type Ticket = {
   id: number; code: string; order_id: number; event_id: number; position: number; name: string; gender: "F" | "M"; birth_date: string;
   lot_id: number | null; combo_id: number | null; base_price_cents: number; age_discount_cents: number; price_cents: number;

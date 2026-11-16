@@ -19,6 +19,9 @@ const MESSAGES: Record<string, string> = {
   not_found: "Compra não encontrada.",
   forbidden: "Você não tem acesso a esta ação.",
   max_admins: "O limite é de 5 administradores.",
+  bad_method: "Escolha a forma de pagamento recebida.",
+  onsite_paid_only: "A inscrição presencial é só para eventos pagos.",
+  sold_out: "Não há vagas. A inscrição presencial não entra na fila de espera.",
 };
 
 export function friendlyError(message: string): string {

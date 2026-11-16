@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import type { Question, Quote } from "@/lib/types";
+import { ONSITE_METHODS, PAYMENT_METHOD, type Question, type Quote } from "@/lib/types";
+import { onsiteOrderAction } from "@/app/equipe/(painel)/eventos/actions";
 import { placeOrderAction, quoteAction } from "./actions";
 
 type Ev = { id: number; kind: "paid" | "free"; questions: Question[]; sessions: { id: number; label: string }[]; combos: { id: number; name: string; count: number; price: number }[] };
@@ -9,8 +10,13 @@ type P = { name: string; gender: string; birth_date: string; answers: Record<str
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const emptyPerson = (): P => ({ name: "", gender: "", birth_date: "", answers: {} });
 
-export function Checkout({ event, lotLabel, seatsLeft }: { event: Ev; lotLabel: string; seatsLeft: number }) {
-  const wait = seatsLeft <= 0;
+/**
+ * Formulário de compra. Com `onsite`, vira a inscrição presencial da equipe: mesmo preço e mesmas validações,
+ * sem fila de espera, com a forma de pagamento recebida (dinheiro, Pix direto ou maquininha).
+ */
+export function Checkout({ event, lotLabel, seatsLeft, onsite = false }: { event: Ev; lotLabel: string; seatsLeft: number; onsite?: boolean }) {
+  const wait = !onsite && seatsLeft <= 0;
+  const [method, setMethod] = useState("");
   const [avulsos, setAvulsos] = useState(1);
   const [combos, setCombos] = useState<Record<number, number>>({});
   const n = avulsos + (wait ? 0 : event.combos.reduce((a, c) => a + (combos[c.id] ?? 0) * c.count, 0));
@@ -55,8 +61,10 @@ export function Checkout({ event, lotLabel, seatsLeft }: { event: Ev; lotLabel: 
   const submit = (ev: React.FormEvent) => {
     ev.preventDefault();
     if (coupon.trim() && coupon.trim().toUpperCase() !== couponApplied.toUpperCase()) { setErrors((e) => ({ ...e, coupon: 'Clique em "Aplicar" para usar o cupom, ou apague o código.' })); return; }
+    if (onsite && !method) { setErrors((e) => ({ ...e, method: "Escolha a forma de pagamento recebida." })); setMessage("Escolha a forma de pagamento recebida."); return; }
     start(async () => {
-      const r = await placeOrderAction({ eventId: event.id, sessionId: session ? Number(session) : null, people, buyer, combos: comboPicks, coupon: couponApplied });
+      const input = { eventId: event.id, sessionId: session ? Number(session) : null, people, buyer, combos: comboPicks, coupon: couponApplied };
+      const r = onsite ? await onsiteOrderAction({ ...input, method }) : await placeOrderAction(input);
       if (r && !r.ok) { setErrors(r.errors ?? {}); setMessage(r.message); requestAnimationFrame(() => document.querySelector(".err, .alert")?.scrollIntoView({ block: "center" })); }
     });
   };
@@ -72,6 +80,7 @@ export function Checkout({ event, lotLabel, seatsLeft }: { event: Ev; lotLabel: 
     </div>
   );
 
+  if (onsite && seatsLeft <= 0) return <p className="notice">Não há vagas. A inscrição presencial não entra na fila de espera.</p>;
   return (
     <form onSubmit={submit} noValidate>
       {message && <div className="alert" role="alert">{message}</div>}
@@ -118,7 +127,7 @@ export function Checkout({ event, lotLabel, seatsLeft }: { event: Ev; lotLabel: 
           <label htmlFor="b-phone">Telefone com DDD<input id="b-phone" type="tel" autoComplete="tel" value={buyer.phone} onChange={(e) => setBuyer({ ...buyer, phone: e.target.value })} />{err("b-phone")}</label>
           <label htmlFor="b-cpf">CPF<input id="b-cpf" inputMode="numeric" autoComplete="off" value={buyer.cpf} onChange={(e) => setBuyer({ ...buyer, cpf: e.target.value })} />{err("b-cpf")}</label>
         </div>
-        <label className="check"><input type="checkbox" checked={buyer.adult} onChange={(e) => setBuyer({ ...buyer, adult: e.target.checked })} /> Tenho 18 anos ou mais e sou responsável pelos menores desta compra.</label>
+        <label className="check"><input type="checkbox" checked={buyer.adult} onChange={(e) => setBuyer({ ...buyer, adult: e.target.checked })} /> {onsite ? "Quem está comprando tem 18 anos ou mais e é responsável pelos menores desta compra." : "Tenho 18 anos ou mais e sou responsável pelos menores desta compra."}</label>
         {err("b-adult")}
       </div>
 
@@ -131,6 +140,17 @@ export function Checkout({ event, lotLabel, seatsLeft }: { event: Ev; lotLabel: 
           </div>
           {err("coupon")}
           {couponApplied && <p className="small" style={{ color: "var(--ok)", marginTop: 6 }}>Cupom {couponApplied.toUpperCase()} aplicado.</p>}
+        </>
+      )}
+
+      {onsite && (
+        <>
+          <h2>5. Pagamento recebido</h2>
+          <fieldset className="radio-row" aria-describedby="method-help"><legend>Forma de pagamento</legend>
+            {ONSITE_METHODS.map((m) => <label key={m}><input type="radio" name="method" checked={method === m} onChange={() => setMethod(m)} /> {PAYMENT_METHOD[m]}</label>)}
+            {err("method")}
+          </fieldset>
+          <p id="method-help" className="muted small">Confirme só depois de receber o valor total. A compra já sai paga, os QR codes vão para o email e quem pagou presencialmente não cancela pelo site.</p>
         </>
       )}
 
@@ -147,7 +167,7 @@ export function Checkout({ event, lotLabel, seatsLeft }: { event: Ev; lotLabel: 
             </> : <p className="muted small" style={{ margin: 0 }}>{qErr || "Calculando…"}</p>}
       </div>
       <button className="btn" type="submit" style={{ width: "100%", marginTop: 14 }} disabled={pending || n < 1 || n > 20 || (!wait && n > seatsLeft)}>
-        {pending ? "Enviando…" : wait ? "Entrar na fila de espera" : event.kind === "free" ? "Confirmar inscrição" : "Ir para o pagamento"}
+        {pending ? "Enviando…" : onsite ? (q ? `Confirmar inscrição · ${brl(q.total)} recebido` : "Confirmar inscrição") : wait ? "Entrar na fila de espera" : event.kind === "free" ? "Confirmar inscrição" : "Ir para o pagamento"}
       </button>
     </form>
   );

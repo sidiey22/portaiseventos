@@ -7,14 +7,15 @@ import { applyFilters, answerText, loadRows, type Filters, type Row } from "@/li
 import { requireManager, type Staff } from "@/lib/staff";
 import { db, unwrap } from "@/lib/supabase";
 import { dayKey, dayLabel, eventDays, formatBRL, formatDate, formatDateTime, formatRange, isoToLocalInput } from "@/lib/time";
-import { ORDER_STATUS, QUESTION_TYPES, type OrderStatus } from "@/lib/types";
+import { ONSITE_METHODS, ORDER_STATUS, PAYMENT_METHOD, QUESTION_TYPES, type OrderStatus } from "@/lib/types";
+import { Checkout } from "@/app/(site)/eventos/[slug]/checkout";
 import * as A from "../actions";
 import { PlacePicker } from "./place-picker";
 
 export const dynamic = "force-dynamic";
 const STATUS: Record<string, string> = { draft: "Rascunho", published: "Publicado", closed: "Encerrado" };
-const TABS = [["painel", "Painel e inscritos"], ["editar", "Dados do evento"], ["precos", "Lotes e preços"], ["form", "Formulário"], ["equipe", "Equipe"]] as const;
-type SP = Filters & { aba?: string; ok?: string; erro?: string; export?: string };
+const TABS = [["painel", "Painel e inscritos"], ["presencial", "Inscrição presencial"], ["editar", "Dados do evento"], ["precos", "Lotes e preços"], ["form", "Formulário"], ["equipe", "Equipe"]] as const;
+type SP = Filters & { aba?: string; ok?: string; erro?: string; export?: string; compra?: string };
 
 export default async function ManageEvent({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<SP> }) {
   const id = Number((await params).id);
@@ -23,7 +24,9 @@ export default async function ManageEvent({ params, searchParams }: { params: Pr
   await db().rpc("expire_stale");
   const e = await getEvent(id);
   if (!e) notFound();
-  const tab = TABS.some(([k]) => k === sp.aba) ? sp.aba! : "painel";
+  // A inscrição presencial só existe em evento pago.
+  const tabs = TABS.filter(([k]) => k !== "presencial" || e.kind === "paid");
+  const tab = tabs.some(([k]) => k === sp.aba) ? sp.aba! : "painel";
   const Hidden = () => <input type="hidden" name="eventId" value={e.id} />;
   return (
     <>
@@ -38,8 +41,9 @@ export default async function ManageEvent({ params, searchParams }: { params: Pr
       </div>
       {sp.ok && <div className="okbox flash" role="status" style={{ marginTop: 14 }}>{sp.ok}</div>}
       {sp.erro && <div className="alert flash" role="alert" style={{ marginTop: 14 }}>{sp.erro}</div>}
-      <nav className="tabs" aria-label="Seções do evento">{TABS.map(([k, l]) => <Link key={k} href={`/equipe/eventos/${e.id}?aba=${k}`} role="tab" aria-selected={tab === k} className="tab">{l}</Link>)}</nav>
+      <nav className="tabs" aria-label="Seções do evento">{tabs.map(([k, l]) => <Link key={k} href={`/equipe/eventos/${e.id}?aba=${k}`} role="tab" aria-selected={tab === k} className="tab">{l}</Link>)}</nav>
       {tab === "painel" && <Panel e={e} s={s} sp={sp} />}
+      {tab === "presencial" && <Onsite e={e} compra={sp.compra} />}
       {tab === "editar" && <Edit e={e} s={s} Hidden={Hidden} />}
       {tab === "precos" && <Prices e={e} s={s} Hidden={Hidden} />}
       {tab === "form" && <FormTab e={e} Hidden={Hidden} />}
@@ -64,11 +68,12 @@ function Bars({ data, label }: { data: { l: string; v: number }[]; label: string
 
 async function Panel({ e, s, sp }: { e: EventFull; s: Staff; sp: SP }) {
   const all = await loadRows(e);
-  const f: Filters = { gender: sp.gender, lot: sp.lot, status: sp.status, band: sp.band, ck: sp.ck, q: sp.q, qv: sp.qv };
+  const f: Filters = { gender: sp.gender, lot: sp.lot, status: sp.status, pay: sp.pay, band: sp.band, ck: sp.ck, q: sp.q, qv: sp.qv };
   const rows = applyFilters(all, f);
   const filtered = Object.values(f).some(Boolean);
   const conf = rows.filter((r) => r.status === "confirmed");
   const revenue = conf.reduce((a, r) => a + r.price - r.couponShare, 0);
+  const byMethod = (["online", ...ONSITE_METHODS] as const).map((m) => ({ m, v: conf.filter((r) => r.method === m).reduce((a, r) => a + r.price - r.couponShare, 0) })).filter((x) => x.v > 0);
   const a = await availability(e);
   const q = e.questions.find((x) => String(x.id) === sp.q);
   const first = all.length ? all.reduce((m, r) => (r.createdAt < m ? r.createdAt : m), all[0]!.createdAt) : new Date().toISOString();
@@ -81,7 +86,8 @@ async function Panel({ e, s, sp }: { e: EventFull; s: Staff; sp: SP }) {
   return (
     <>
       <div className="kpis">
-        <div className="kpi"><span className="muted small">Arrecadado</span><strong>{e.kind === "paid" ? formatBRL(Math.round(revenue)) : "Gratuito"}</strong><span className="muted small">{filtered ? "com os filtros" : "compras confirmadas"}</span></div>
+        <div className="kpi"><span className="muted small">Arrecadado</span><strong>{e.kind === "paid" ? formatBRL(Math.round(revenue)) : "Gratuito"}</strong><span className="muted small">{filtered ? "com os filtros" : "compras confirmadas"}</span>
+          {e.kind === "paid" && byMethod.length > 0 && <span className="muted small">{byMethod.map((x) => `${PAYMENT_METHOD[x.m]}: ${formatBRL(Math.round(x.v))}`).join(" · ")}</span>}</div>
         <div className="kpi"><span className="muted small">Inscritos</span><strong>{conf.length}</strong><span className="muted small">confirmados</span></div>
         <div className="kpi"><span className="muted small">Check-ins</span><strong>{conf.filter((r) => r.checkins.length).length}</strong><span className="muted small">pessoas que entraram</span></div>
         <div className="kpi"><span className="muted small">Vagas restantes</span><strong>{a.seatsLeft} de {e.capacity}</strong></div>
@@ -92,6 +98,7 @@ async function Panel({ e, s, sp }: { e: EventFull; s: Staff; sp: SP }) {
         <label htmlFor="fl-gender">Gênero<select id="fl-gender" name="gender" defaultValue={f.gender ?? ""}>{opt("", "Todos")}{opt("F", "Feminino")}{opt("M", "Masculino")}</select></label>
         {e.lots.length > 0 && <label htmlFor="fl-lot">Lote<select id="fl-lot" name="lot" defaultValue={f.lot ?? ""}>{opt("", "Todos")}{e.lots.map((l) => opt(String(l.id), l.name))}</select></label>}
         <label htmlFor="fl-status">Pagamento<select id="fl-status" name="status" defaultValue={f.status ?? ""}>{opt("", "Todos")}{(Object.keys(ORDER_STATUS) as OrderStatus[]).map((k) => opt(k, ORDER_STATUS[k]))}</select></label>
+        {e.kind === "paid" && <label htmlFor="fl-pay">Forma de pagamento<select id="fl-pay" name="pay" defaultValue={f.pay ?? ""}>{opt("", "Todas")}{(["online", ...ONSITE_METHODS] as const).map((m) => opt(m, PAYMENT_METHOD[m]))}</select></label>}
         {e.age_bands.length > 0 && <label htmlFor="fl-band">Faixa de idade<select id="fl-band" name="band" defaultValue={f.band ?? ""}>{opt("", "Todas")}{e.age_bands.map((b) => opt(String(b.id), `${b.min_age} a ${b.max_age} anos`))}{opt("none", "Sem desconto")}</select></label>}
         <label htmlFor="fl-ck">Check-in<select id="fl-ck" name="ck" defaultValue={f.ck ?? ""}>{opt("", "Todos")}{opt("yes", "Com check-in")}{opt("no", "Sem check-in")}</select></label>
         {e.questions.length > 0 && <label htmlFor="fl-q">Pergunta<select id="fl-q" name="q" defaultValue={f.q ?? ""}>{opt("", "Nenhuma")}{e.questions.map((x) => opt(String(x.id), x.label))}</select></label>}
@@ -128,10 +135,10 @@ function RowsTable({ e, rows, admin }: { e: EventFull; rows: Row[]; admin: boole
           <td>{r.checkins.map(dayLabel).join(", ") || <span className="muted">—</span>}</td>
           {e.questions.map((q) => <td key={q.id}>{answerText(r.answers[String(q.id)])}</td>)}
           <td className="small">{r.buyer.name}<br /><span className="muted">{r.buyer.email}<br />{r.buyer.phone}</span></td>
-          <td className="num">{e.kind === "paid" ? formatBRL(Math.round(r.price - r.couponShare)) : "—"}</td>
+          <td className="num">{e.kind === "paid" ? <>{formatBRL(Math.round(r.price - r.couponShare))}{r.method !== "online" && <><br /><span className="muted small">{PAYMENT_METHOD[r.method]}{r.recordedBy ? ` · por ${r.recordedBy}` : ""}</span></>}</> : "—"}</td>
           {admin && <td>{r.position === 0 && r.status === "confirmed" && (
             <form action={A.refundAction}><input type="hidden" name="eventId" value={e.id} /><input type="hidden" name="orderCode" value={r.orderCode} />
-              <button className="btn danger sm" type="submit">{r.orderTotal > 0 ? "Reembolsar compra" : "Cancelar compra"}</button></form>)}</td>}
+              <button className="btn danger sm" type="submit">{r.method !== "online" ? (r.orderTotal > 0 ? "Cancelar e devolver em mãos" : "Cancelar compra") : r.orderTotal > 0 ? "Reembolsar compra" : "Cancelar compra"}</button></form>)}</td>}
         </tr>
       ))}</tbody>
     </table></div>
@@ -327,5 +334,32 @@ async function Team({ e, s, Hidden }: { e: EventFull; s: Staff; Hidden: () => Re
       </div>
       <p className="small muted">Quem ainda não tem acesso recebe um email com um link para criar a própria senha.</p>
     </>
+  );
+}
+
+/* ---------- inscrição presencial ---------- */
+async function Onsite({ e, compra }: { e: EventFull; compra?: string }) {
+  const a = await availability(e);
+  const done = compra && /^[A-Za-z0-9_-]{10,40}$/.test(compra)
+    ? unwrap(await db().from("orders").select("code").eq("code", compra).eq("event_id", e.id).eq("status", "confirmed").maybeSingle()) as { code: string } | null
+    : null;
+  const combos = e.combos.filter((c) => c.active);
+  const over = new Date(e.ends_at ?? e.starts_at).getTime() <= Date.now() - 86_400_000;
+  return (
+    <div className="stack">
+      {done && <p className="card" style={{ margin: 0 }}><a className="btn sm" href={`/compra/${done.code}`} target="_blank" rel="noopener"><Icon name="ticket" /> Mostrar os QR codes na tela</a> <span className="muted small">para a pessoa fotografar, se precisar.</span></p>}
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>Inscrição com pagamento presencial</h2>
+        <p className="muted small">Para quem paga em dinheiro, Pix direto para a igreja ou na maquininha. O preço é o normal do site (lote vigente, desconto por idade, combo e cupom). A compra já sai confirmada, entra no painel e os QR codes vão para o email de quem comprou. Quem paga presencialmente não cancela pelo site: o cancelamento é feito pelo administrador.</p>
+        {e.status !== "published" ? <p className="notice">Publique o evento para fazer inscrições.</p>
+          : over ? <p className="notice">Este evento já aconteceu.</p>
+          : a.seatsLeft <= 0 ? <p className="notice">Não há vagas. A inscrição presencial não entra na fila de espera.</p>
+          : !a.salesOpen ? <p className="notice">Não há lote à venda agora. Crie ou abra um lote em "Lotes e preços".</p>
+          : <Checkout key={compra ?? "nova"} onsite seatsLeft={a.seatsLeft}
+              event={{ id: e.id, kind: e.kind, questions: e.questions, sessions: e.sessions.map((x) => ({ id: x.id, label: `${x.name} · ${formatDateTime(x.starts_at)}` })),
+                combos: combos.map((c) => ({ id: c.id, name: c.name, count: c.ticket_count, price: c.price_cents })) }}
+              lotLabel={a.lot ? `${a.lot.name} · ${formatBRL(a.lot.price_cents)}` : ""} />}
+      </div>
+    </div>
   );
 }

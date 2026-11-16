@@ -18,13 +18,14 @@ Portais Eventos é uma aplicação web da igreja Missionária Portais Eternos pa
 
 - **Eventos** podem ser pagos ou gratuitos. Eventos gratuitos ainda podem exigir inscrição para contagem.
 - **Sessões:** eventos podem ter sessões. Quando houver, o participante escolhe a sessão na inscrição.
-- **Pagamento** somente via Mercado Pago (cartão de crédito ou Pix). Não armazenar dados de cartão.
+- **Pagamento** online somente via Mercado Pago (cartão de crédito ou Pix); pagamento presencial só pela inscrição presencial (abaixo). Não armazenar dados de cartão.
 - **Reserva de vaga:** a vaga fica segurada por até **10 minutos** enquanto o pagamento confirma.
 - **Inscrição duplicada:** bloqueada para a mesma pessoa no mesmo evento.
 - **Campos obrigatórios:** nome, email, telefone, CPF. Se menor de idade, telefone do responsável.
 - **QR code:** enviado por email após confirmação. Serve como ingresso.
 - **Vagas:** administrador pode aumentar vagas, criar lotes de preço e liberar fila de espera.
 - **Cancelamento:** a própria pessoa pode cancelar em até **7 dias**, conforme a lei. Depois disso, a pessoa é orientada a falar com o líder.
+- **Inscrição presencial (2026-11-16):** administrador ou gerente do evento registra quem paga em dinheiro, Pix direto ou maquininha, pelo preço normal; a compra já sai confirmada e entra no painel. Quem pagou presencialmente não cancela pelo site: só o administrador cancela. Ver PRD seção 17.1.
 - **Reembolso:** sempre total, feito pelo administrador via botão que chama a API do Mercado Pago. Reembolso após o evento: a pessoa é orientada a falar com o líder.
 - **Check-in:** por QR code no celular de um voluntário, ou busca manual por nome num computador.
 - **Acampamentos e retiros (ADIADO em 2026-11-04, não implementar por enquanto):** tipo de evento separado (`camp`): vários dias, sessões de manhã e noite, preço pela quantidade de dias (não pela sessão), controle de camas por noite e de alimentação. Check-in próprio por dia e sessão. Ver seção 12 do `PRD.md`.

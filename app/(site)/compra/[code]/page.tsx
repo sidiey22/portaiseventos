@@ -6,7 +6,7 @@ import { getOrder, maskEmail, waitlistPosition } from "@/lib/orders";
 import { mpEnabled } from "@/lib/mercadopago";
 import { db } from "@/lib/supabase";
 import { dayLabel, formatBRL, formatDateTime, formatRange, formatTime } from "@/lib/time";
-import { ORDER_STATUS } from "@/lib/types";
+import { ORDER_STATUS, PAYMENT_METHOD } from "@/lib/types";
 import { cancelAction, payAction, startOfferedAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,8 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
   const e = (await getEvent(o.event_id))!;
   const qrs = o.status === "confirmed" ? await Promise.all(tickets.map((t) => qrDataUrl(t.code))) : [];
   const now = Date.now();
-  const canCancel = o.status === "confirmed" && o.confirmed_at && new Date(o.confirmed_at).getTime() + 7 * 86_400_000 > now
+  // Pagamento presencial (dinheiro, Pix direto, maquininha) não cancela pelo site: só o líder/administrador.
+  const canCancel = o.status === "confirmed" && o.payment_method === "online" && o.confirmed_at && new Date(o.confirmed_at).getTime() + 7 * 86_400_000 > now
     && new Date(e.starts_at).getTime() > now && !tickets.some((t) => t.checkins.length);
   const badge = o.status === "confirmed" ? "ok" : o.status === "cancelled" || o.status === "expired" ? "bad" : "warn";
   const canSimulate = !mpEnabled() && process.env.NODE_ENV !== "production";
@@ -39,6 +40,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
       {o.status === "confirmed" && (
         <>
           <div className="okbox" style={{ marginTop: 14 }}><Icon name="mail" /> Os QR codes foram enviados para <strong>{maskEmail(o.buyer_email)}</strong>.</div>
+          {o.payment_method !== "online" && <p className="muted small" style={{ margin: "8px 0 0" }}>Pagamento presencial: {PAYMENT_METHOD[o.payment_method]}{o.total_cents ? ` · ${formatBRL(o.total_cents)}` : ""}.</p>}
           <div className="qr-grid">
             {tickets.map((t, i) => (
               <figure className="qr-card" key={t.id}>

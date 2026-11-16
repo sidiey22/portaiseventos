@@ -12,6 +12,10 @@ import { isEmail, parseMoneyToCents, slugify } from "@/lib/validation";
 import { friendlyError } from "@/lib/errors";
 import { allow } from "@/lib/rate-limit";
 import { parseCoordinateFields, resolveShortLink, type PairResult } from "@/lib/coords";
+import { placeOrderOnsite, type ComboPick } from "@/lib/orders";
+import { emailTickets } from "@/lib/notify";
+import { validateOrder, type Buyer, type FieldErrors, type Person } from "@/lib/validation";
+import { ONSITE_METHODS, PAYMENT_METHOD } from "@/lib/types";
 
 const txt = (d: FormData, k: string) => String(d.get(k) ?? "").trim();
 const int = (d: FormData, k: string) => Number.parseInt(txt(d, k), 10);
@@ -284,12 +288,19 @@ export async function removeStaffAction(d: FormData): Promise<void> {
   back(id, "equipe", { ok: `${row!.email} não tem mais acesso a este evento.` });
 }
 
-/** Reembolso total de uma compra (só administrador), pela API do Mercado Pago. */
+/** Reembolso total de uma compra (só administrador): pela API do Mercado Pago, ou em mãos quando o pagamento foi presencial. */
 export async function refundAction(d: FormData): Promise<void> {
   const s = await requireAdmin();
   const id = int(d, "eventId"), code = txt(d, "orderCode");
-  const o = unwrap(await db().from("orders").select("id, status, total_cents").eq("code", code).eq("event_id", id).maybeSingle()) as { id: number; status: string; total_cents: number } | null;
+  const o = unwrap(await db().from("orders").select("id, status, total_cents, payment_method").eq("code", code).eq("event_id", id).maybeSingle()) as { id: number; status: string; total_cents: number; payment_method: string } | null;
   if (!o || o.status !== "confirmed") back(id, "painel", { erro: "Só compras confirmadas podem ser reembolsadas." });
+  if (o!.payment_method !== "online") {
+    // Pagamento presencial: a devolução é feita em mãos. Fica registrado quem cancelou e o valor.
+    if (o!.total_cents > 0) await db().from("refunds").insert({ order_id: o!.id, payment_id: null, mp_refund_id: null, amount_cents: o!.total_cents, requested_by: s.id });
+    await db().from("orders").update({ status: "cancelled", cancelled_at: new Date().toISOString() }).eq("id", o!.id);
+    await db().rpc("promote_waitlist", { p_event: id });
+    back(id, "painel", { ok: o!.total_cents ? `Compra cancelada. Devolva ${(o!.total_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} em mãos ao comprador.` : "Compra cancelada." });
+  }
   if (o!.total_cents > 0) {
     if (!mpEnabled()) back(id, "painel", { erro: "O Mercado Pago ainda não está configurado." });
     try {
@@ -307,4 +318,40 @@ export async function refundAction(d: FormData): Promise<void> {
   await db().from("orders").update({ status: "cancelled", cancelled_at: new Date().toISOString() }).eq("id", o!.id);
   await db().rpc("promote_waitlist", { p_event: id });
   back(id, "painel", { ok: o!.total_cents ? "Reembolso total enviado ao Mercado Pago e compra cancelada." : "Compra cancelada." });
+}
+
+/* ---------- inscrição presencial ---------- */
+export type OnsiteInput = { eventId: number; sessionId: number | null; people: Person[]; buyer: Buyer; combos: ComboPick[]; coupon: string; method: string };
+
+/**
+ * Inscrição presencial (dinheiro, Pix direto para a igreja ou maquininha), feita pelo administrador ou pelo gerente do evento.
+ * Mesmas validações da compra online; o preço é o normal, calculado pelo banco. A compra já sai confirmada e os QR codes vão por email.
+ */
+export async function onsiteOrderAction(input: OnsiteInput): Promise<{ ok: false; errors?: FieldErrors; message: string }> {
+  const id = Number(input?.eventId);
+  const s = await requireManager(id);
+  if (!allow(`onsite:${s.id}`, 30, 10 * 60_000)) return { ok: false, message: "Muitas inscrições seguidas. Aguarde alguns minutos." };
+  const method = String(input?.method ?? "");
+  if (!(ONSITE_METHODS as readonly string[]).includes(method)) return { ok: false, errors: { method: "Escolha a forma de pagamento recebida." }, message: "Escolha a forma de pagamento recebida." };
+  const e = await getEvent(id);
+  if (!e || e.kind !== "paid") return { ok: false, message: "A inscrição presencial é só para eventos pagos." };
+  if (e.status !== "published") return { ok: false, message: "O evento precisa estar publicado para receber inscrições." };
+  const people = (Array.isArray(input.people) ? input.people : []).slice(0, 21).map((p) => ({
+    name: String(p?.name ?? ""), gender: String(p?.gender ?? ""), birth_date: String(p?.birth_date ?? ""), answers: (p?.answers && typeof p.answers === "object") ? p.answers : {},
+  }));
+  const v = validateOrder({ name: String(input.buyer?.name ?? ""), email: String(input.buyer?.email ?? ""), phone: String(input.buyer?.phone ?? ""), cpf: String(input.buyer?.cpf ?? ""), adult: Boolean(input.buyer?.adult) }, people, e.questions);
+  if (!v.ok) return { ok: false, errors: v.errors, message: "Confira os campos marcados." };
+  if (e.sessions.length && !e.sessions.some((x) => x.id === Number(input.sessionId))) return { ok: false, errors: { session: "Escolha uma sessão." }, message: "Escolha uma sessão." };
+  const combos = (Array.isArray(input.combos) ? input.combos : []).map((x) => ({ combo_id: Number(x?.combo_id), quantity: Math.max(0, Math.min(10, Math.floor(Number(x?.quantity) || 0))) }))
+    .filter((x) => Number.isInteger(x.combo_id) && x.quantity > 0);
+  const r = await placeOrderOnsite(s.id, e.id, e.sessions.length ? Number(input.sessionId) : null, v.buyer, v.people, combos, String(input.coupon || "").slice(0, 30), method);
+  if (!r.ok) return { ok: false, errors: r.field ? { coupon: r.error } : undefined, message: r.error };
+  let mailed = true;
+  await emailTickets(r.order.id).catch((err) => { mailed = false; console.error("Falha ao enviar ingressos (presencial):", err); });
+  const total = (r.order.total_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const label = PAYMENT_METHOD[method as keyof typeof PAYMENT_METHOD];
+  redirect(`/equipe/eventos/${e.id}?${new URLSearchParams({
+    aba: "presencial", compra: r.order.code,
+    ok: `Inscrição confirmada: ${r.order.ticket_count} ${r.order.ticket_count === 1 ? "ingresso" : "ingressos"}, ${total} em ${label.toLowerCase()}.${mailed ? " Os QR codes foram enviados por email." : " O email não saiu agora; mostre os QR codes na tela."}`,
+  })}`);
 }

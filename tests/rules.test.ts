@@ -68,8 +68,8 @@ test("limite de tentativas", () => {
 });
 
 test("relatório: filtros e exportação protegida contra fórmulas", () => {
-  const base: Row = { ticketCode: "a", name: "Ana", gender: "F", birth: "2016-05-02", age: 10, bandId: 12, lotId: 1, lotName: "1º lote", comboName: "", price: 3500, couponShare: 0, status: "confirmed", orderCode: "c1", createdAt: "2026-11-01T10:00:00Z", checkins: [], answers: { 1: "sim" }, buyer: { name: "=CMD()", email: "a@x.com", phone: "31999990000", cpf: "52998224725" }, orderTotal: 3500, position: 0 };
-  const rows = [base, { ...base, ticketCode: "b", name: "Bruno", gender: "M" as const, bandId: null, checkins: ["2026-11-27"], answers: { 1: "não" } }];
+  const base: Row = { ticketCode: "a", name: "Ana", gender: "F", birth: "2016-05-02", age: 10, bandId: 12, lotId: 1, lotName: "1º lote", comboName: "", price: 3500, couponShare: 0, status: "confirmed", orderCode: "c1", createdAt: "2026-11-01T10:00:00Z", checkins: [], answers: { 1: "sim" }, buyer: { name: "=CMD()", email: "a@x.com", phone: "31999990000", cpf: "52998224725" }, orderTotal: 3500, position: 0, method: "online", recordedBy: "" };
+  const rows = [base, { ...base, ticketCode: "b", name: "Bruno", gender: "M" as const, bandId: null, checkins: ["2026-11-27"], answers: { 1: "não" }, method: "cash" as const, recordedBy: "Gerente" }];
   assert.equal(applyFilters(rows, { gender: "F" }).length, 1);
   assert.equal(applyFilters(rows, { band: "none" })[0]!.name, "Bruno");
   assert.equal(applyFilters(rows, { ck: "yes" }).length, 1);
@@ -79,6 +79,18 @@ test("relatório: filtros e exportação protegida contra fórmulas", () => {
   assert.ok(!t[0]!.includes("CPF do comprador"), "gerente não exporta CPF");
   assert.ok(tableRows(e, rows, true)[0]!.includes("CPF do comprador"));
   assert.match(toCsv(t), /'=CMD\(\)/);
+  // inscrição presencial: filtro e colunas da exportação
+  assert.equal(applyFilters(rows, { pay: "cash" })[0]!.name, "Bruno");
+  assert.equal(applyFilters(rows, { pay: "online" }).length, 1);
+  const pi = t[0]!.indexOf("Forma de pagamento"), ri = t[0]!.indexOf("Registrado por");
+  assert.equal(t[1]![pi], "Online");
+  assert.deepEqual([t[2]![pi], t[2]![ri]], ["Dinheiro", "Gerente"]);
+});
+
+test("mensagens da inscrição presencial", () => {
+  assert.equal(friendlyError("sold_out"), "Não há vagas. A inscrição presencial não entra na fila de espera.");
+  assert.equal(friendlyError("bad_method"), "Escolha a forma de pagamento recebida.");
+  assert.equal(friendlyError("onsite_paid_only"), "A inscrição presencial é só para eventos pagos.");
 });
 
 test("assinatura do webhook do Mercado Pago", () => {

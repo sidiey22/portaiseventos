@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const e = await getEvent(id);
   if (!e) return new NextResponse("Evento não encontrado.", { status: 404 });
   const u = new URL(req.url);
-  const f: Filters = Object.fromEntries(["gender", "lot", "status", "band", "ck", "q", "qv"].map((k) => [k, u.searchParams.get(k) ?? undefined]));
+  const f: Filters = Object.fromEntries(["gender", "lot", "status", "pay", "band", "ck", "q", "qv"].map((k) => [k, u.searchParams.get(k) ?? undefined]));
   const table = tableRows(e, applyFilters(await loadRows(e), f), s.isAdmin);
   const name = `inscritos-${slugify(e.name) || e.id}`;
   const headers = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };

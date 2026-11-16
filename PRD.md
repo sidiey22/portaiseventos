@@ -355,3 +355,16 @@ Pedido do Gabriel: a aba Eventos do site da igreja (portaiseternos.com.br) mostr
 - Imagem: o banner enviado; sem banner, `GET /api/public/eventos/{slug}/banner` devolve a arte automática (a mesma da vitrine do app, `lib/banner-art.ts`). Nada de inscritos, CPF, emails, pagamentos, valores arrecadados, endereço completo ou dados da equipe.
 - CORS liberado só para `https://portaiseternos.com.br` e `https://www.portaiseternos.com.br`.
 - Limite de 60 acessos por minuto por IP e cache de 60 segundos no servidor.
+
+## 17. Ajustes de 2026-11-16 — NOVO
+
+### 17.1 Inscrição presencial (pagamento em dinheiro, Pix direto ou maquininha)
+- Aba "Inscrição presencial" no painel do evento, só em evento **pago**. Quem pode usar: **administrador e gerente do evento**. O credenciamento não tem acesso.
+- Formulário igual ao do site (participantes, comprador com nome, email, telefone e CPF, sessão, combos e cupom), com as mesmas validações e a mesma trava de CPF duplicado.
+- **Preço normal**, calculado pelo servidor (lote vigente, desconto por idade, combo e cupom). Não há desconto manual nem cortesia.
+- Formas de pagamento presenciais: **dinheiro**, **Pix direto para a igreja** e **maquininha de cartão**. A equipe confirma só depois de receber o valor total.
+- A compra já nasce **confirmada**: não passa pelo Mercado Pago nem pela reserva de 10 minutos. Respeita o limite de vagas e **não entra na fila de espera** (sem vaga, a inscrição é recusada).
+- Os QR codes vão para o email do comprador, como na compra online, e podem ser mostrados na tela para a pessoa fotografar.
+- O valor entra no painel. O "Arrecadado" mostra a divisão por forma de pagamento, a lista de inscritos mostra a forma e quem registrou, há filtro por forma de pagamento e a exportação ganha as colunas "Forma de pagamento" e "Registrado por".
+- **Cancelamento:** quem pagou presencialmente **não cancela pelo site**; a pessoa fala com o líder. Só o **administrador** cancela, pelo botão "Cancelar e devolver em mãos": a compra é cancelada, o QR deixa de valer na hora, a vaga volta para a fila de espera, e o valor fica registrado como reembolso feito em mãos. Não há chamada ao Mercado Pago.
+- Banco: `orders.payment_method` (`online`, `cash`, `pix_direct`, `card_machine`) e `orders.recorded_by`; função `place_order_onsite` (confere a permissão no banco) e `cancel_self` atualizada. Migração `20261116_inscricao_presencial.sql`.

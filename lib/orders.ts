@@ -26,6 +26,20 @@ export async function placeOrder(eventId: number, sessionId: number | null, buye
   return { ok: true, order: r.order, tickets: r.tickets };
 }
 
+/** Inscrição presencial: o banco confere a permissão (admin ou gerente do evento), calcula o preço e confirma na hora. */
+export async function placeOrderOnsite(userId: string, eventId: number, sessionId: number | null, buyer: Omit<Buyer, "adult">, people: Person[], combos: ComboPick[], coupon: string, method: string):
+  Promise<{ ok: true; order: Order; tickets: { code: string; name: string }[] } | { ok: false; error: string; field?: string }> {
+  const { data, error } = await db().rpc("place_order_onsite", {
+    p_user: userId, p_event: eventId, p_session: sessionId, p_buyer: buyer, p_people: people, p_combos: combos, p_coupon: coupon || null, p_method: method,
+  });
+  if (error) {
+    const dup = error.code === "23505" ? "duplicate" : error.message;
+    return { ok: false, error: friendlyError(dup), field: /coupon/.test(error.message) ? "coupon" : undefined };
+  }
+  const r = data as { order: Order; tickets: { code: string; name: string }[] };
+  return { ok: true, order: r.order, tickets: r.tickets };
+}
+
 export async function getOrder(code: string): Promise<{ order: Order; tickets: (Ticket & { checkins: { day: string }[] })[] } | null> {
   if (!/^[A-Za-z0-9_-]{10,40}$/.test(code)) return null;
   const order = unwrap(await db().from("orders").select("*").eq("code", code).maybeSingle()) as Order | null;
